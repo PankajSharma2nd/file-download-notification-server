@@ -18,9 +18,6 @@ const vapidKeys = {
   privateKey: process.env.VAPID_PRIVATE_KEY
 };
 
-// Get encryption key from environment variables
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-encryption-key-should-be-32-bytes';
-
 // Configure web-push
 webpush.setVapidDetails(
   'mailto:' + (process.env.CONTACT_EMAIL || 'your-email@example.com'),
@@ -31,10 +28,21 @@ webpush.setVapidDetails(
 // In-memory subscription storage
 let subscriptions = [];
 
+// Function to create a 32-byte key (required for AES-256)
+function createEncryptionKey(keyString) {
+  // Use SHA-256 to generate a 32-byte key from any string
+  return crypto.createHash('sha256').update(keyString).digest();
+}
+
+// Get encryption key from environment variables or use default
+const encryptionKeyString = process.env.ENCRYPTION_KEY || 'your-encryption-key-should-be-32-bytes';
+const ENCRYPTION_KEY = createEncryptionKey(encryptionKeyString);
+
 // Function to encrypt data
 function encryptData(data) {
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+  // Use the 32-byte key generated above
+  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
   let encrypted = cipher.update(data);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
   return { iv: iv.toString('hex'), data: encrypted.toString('hex') };
@@ -105,13 +113,22 @@ app.post('/api/send-file-notification', async (req, res) => {
     }
     
     // Send to all subscriptions
+    let successCount = 0;
+    let errorCount = 0;
+    
     for (const subscription of subscriptions) {
-      await sendSpecificFileNotification(subscription);
+      try {
+        await sendSpecificFileNotification(subscription);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        console.error('Error sending to subscription:', error);
+      }
     }
     
     return res.json({ 
       success: true, 
-      message: `Sent file notifications to ${subscriptions.length} subscribers` 
+      message: `Sent file notifications to ${successCount} subscribers (${errorCount} failed)` 
     });
   } catch (error) {
     console.error('Error sending file notification:', error);
@@ -144,6 +161,7 @@ async function sendSpecificFileNotification(subscription) {
     // Send the notification
     await webpush.sendNotification(subscription, payload);
     console.log('Sent encrypted file notification for secure.EXE');
+    return true;
   } catch (error) {
     console.error('Error sending encrypted notification:', error);
     
